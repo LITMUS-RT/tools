@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ "" == "$*" ]; then
+	echo "zaptrail: remove trailing white space"
+	echo "Usage: zaptrail <file1> <file2> ...."
+	exit 1
+fi
+
+sed -i -r -e 's/\s+$//' $*

@@ -1,0 +1,92 @@
+#!/bin/bash
+
+function die()
+{
+	echo " (EE) $1"
+	exit 1
+}
+
+function info()
+{
+	echo " (II) $1"
+}
+
+function silent()
+{
+	OUTPUT=`$*`
+	if [ "$?" != "0" ]; then
+		echo $OUTPUT
+		die "$* failed!"
+	fi
+}
+
+# Function to grab var from src
+function getvar() {
+  old=$(head -5 Makefile | grep "^$1")
+  echo $(echo ${old/"$1 ="/} | sed -e "s/[ ]*\(.*\)[ ]*/\1/g")
+  return 0
+}
+
+if [ ! -f "./.config" ]; then
+	CURDIR=`pwd`
+	die "No kernel .config exists in $CURDIR!"
+fi
+
+if [ ! -f "./Makefile" ]; then
+	die "No Makefile present!"
+fi
+
+VERSION=`getvar VERSION`
+PATCHLEVEL=`getvar PATCHLEVEL`
+SUBLEVEL=`getvar SUBLEVEL`
+EXTRAVERSION=`getvar EXTRAVERSION`
+
+. ./.config
+
+NAME="$VERSION.$PATCHLEVEL.$SUBLEVEL$EXTRAVERSION$CONFIG_LOCALVERSION"
+
+info "Detected kernel version $NAME"
+
+if [ $UID != "0" ]; then
+	die "Must be root to install kernel!"
+fi
+
+# (1) copy modules
+if [ "$1" != "-m" ]; then
+	info "Installing modules..."
+	silent make -j8 modules_install
+else
+	info "Skipping installing modules."
+fi
+
+# (2) copy kernel
+info "Installing kernel..."
+silent cp -v arch/i386/boot/bzImage /boot/vmlinuz-$NAME
+silent cp -v System.map             /boot/System.map-$NAME
+
+# (3) build ramdisk
+info "Building module dependencies"
+silent depmod -v $NAME
+
+info "Building initial ramdisk..."
+silent mkinitcpio -g /boot/kernel-$NAME.img -k $NAME
+
+# (4) make bootloader entry
+ALREADY_PRESENT=`grep "kernel /boot/vmlinuz-$NAME" /boot/grub/menu.lst `
+
+if [ ! -z "$ALREADY_PRESENT" ]; then
+	info "Bootloader entry appears to be already present."
+else
+	info "Creating bootloader entry..."
+	cat >> /boot/grub/menu.lst <<__EOE__
+
+# Custom kernel
+title  Kernel $NAME
+root   (hd0,5)
+kernel /boot/vmlinuz-$NAME root=/dev/sda6 ro vga=791
+initrd /boot/kernel-$NAME.img
+__EOE__
+
+fi
+
+info "Kernel $NAME has been installed."

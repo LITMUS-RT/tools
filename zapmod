@@ -1,0 +1,10 @@
+#!/bin/sh
+
+#CMD=/home/bbb/bin/zaptrail
+CMD=zaptrail
+
+set -e
+for f in `git diff --name-only`; do
+    echo "Zapping trailing white space in $f."
+    $CMD $f
+done

@@ -1,0 +1,74 @@
+#!/bin/bash
+
+RELEASE_DIR=/home/bbb/releases
+
+LIBLITMUS_DIR=/home/bbb/liblitmus
+LIBSO_DIR=/home/bbb/libso
+LITMUS_DIR=/home/bbb/litmus
+
+BASE_TAG="v2.6.20"
+
+TAG=$1
+
+function die {
+    echo $1
+    echo
+    echo "Usage:    make_release <TAG>"
+    echo "Example:  make_release 2007.3"
+    exit 1
+}
+
+if [ -z "$TAG"  ]; then
+    die "TAG missing."
+fi
+
+function archive {
+    PREFIX=$1
+    TGZ=$2
+
+    TMP=`mktemp`
+    git archive --format=tar --prefix=$PREFIX/ $TAG > $TMP || \
+	die "Could not create archive from tree."
+    gzip -c $TMP > $TGZ || die "Could not compress."
+    rm $TMP
+}
+
+function release_liblitmus {
+    echo "Releasing liblitmus."
+    cd $LIBLITMUS_DIR || die "Could not cd to $LIBLITMUS_DIR."
+    archive liblitmus $TARGET/liblitmus-$TAG.tgz || die "Could not build archive."
+    return 0
+}
+
+function release_libso {
+    echo "Releasing libso."
+    cd $LIBSO_DIR || die "Could not cd to $LIBSO_DIR."
+    archive libso $TARGET/libso-$TAG.tgz || "Could not build archive."
+    return 0
+}
+
+
+function release_litmus {
+    echo "Releasing LITMUS^RT."
+    cd $LITMUS_DIR || die "Could not cd to $LITMUS_DIR."
+    git-diff -p --stat $BASE_TAG $TAG > $TARGET/litmus-rt-$TAG.patch || \
+	die "Could not create patch."
+    return 0
+}
+
+
+
+TARGET="$RELEASE_DIR/$TAG"
+
+mkdir -p $TARGET    || die "Could not make directory $TARGET."
+
+
+release_litmus      || die "Releasing LITMUS^RT failed."
+release_liblitmus   || die "Releasing liblitmus failed."
+release_libso       || die "Releasing libso failed."
+
+cd $TARGET
+echo "Generating check sums." 
+sha256sum * > SHA256SUMS
+
+echo "Release generated in $TARGET."
