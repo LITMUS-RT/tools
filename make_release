@@ -2,19 +2,19 @@
 
 RELEASE_DIR=/home/bbb/releases
 
-LIBLITMUS_DIR=/home/bbb/liblitmus
-LIBSO_DIR=/home/bbb/libso
-LITMUS_DIR=/home/bbb/litmus
+LIBLITMUS_DIR=/home/bbb/dev/liblitmus2008
+LITMUS_DIR=/home/bbb/dev/litmus2008
 
-BASE_TAG="v2.6.20"
+BASE_TAG="v2.6.24"
 
 TAG=$1
 
 function die {
     echo $1
     echo
-    echo "Usage:    make_release <TAG>"
-    echo "Example:  make_release 2007.3"
+    echo "Usage:      make_release <TAG>"
+    echo "Example:    make_release 2007.3"
+    echo "Given tag:  '${TAG}'"
     exit 1
 }
 
@@ -40,14 +40,6 @@ function release_liblitmus {
     return 0
 }
 
-function release_libso {
-    echo "Releasing libso."
-    cd $LIBSO_DIR || die "Could not cd to $LIBSO_DIR."
-    archive libso $TARGET/libso-$TAG.tgz || "Could not build archive."
-    return 0
-}
-
-
 function release_litmus {
     echo "Releasing LITMUS^RT."
     cd $LITMUS_DIR || die "Could not cd to $LITMUS_DIR."
@@ -65,7 +57,6 @@ mkdir -p $TARGET    || die "Could not make directory $TARGET."
 
 release_litmus      || die "Releasing LITMUS^RT failed."
 release_liblitmus   || die "Releasing liblitmus failed."
-release_libso       || die "Releasing libso failed."
 
 cd $TARGET
 echo "Generating check sums." 
