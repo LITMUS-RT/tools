@@ -1,0 +1,114 @@
+#!/bin/bash
+
+function log()
+{
+    echo "$1" >> /tmp/install_kernel.log
+}
+
+function die()
+{
+	echo " (EE) $1"
+	log  " (EE) $1"
+	exit 1
+}
+
+function info()
+{
+	echo " (II) $1"
+	log  " (II) $1"
+}
+
+function silent()
+{
+	OUTPUT=`$*`
+	if [ "$?" != "0" ]; then
+	    echo $OUTPUT
+	    die "$* failed!"
+	else
+	    log "$OUTPUT"
+	fi
+}
+
+# Function to grab var from src
+function getvar() {
+  old=$(head -5 Makefile | grep "^$1")
+  echo $(echo ${old/"$1 ="/} | sed -e "s/[ ]*\(.*\)[ ]*/\1/g")
+  return 0
+}
+
+if [ ! -f "./.config" ]; then
+	CURDIR=`pwd`
+	die "No kernel .config exists in $CURDIR!"
+fi
+
+if [ ! -f "./Makefile" ]; then
+	die "No Makefile present!"
+fi
+
+VERSION=`getvar VERSION`
+PATCHLEVEL=`getvar PATCHLEVEL`
+SUBLEVEL=`getvar SUBLEVEL`
+EXTRAVERSION=`getvar EXTRAVERSION`
+
+. ./.config
+
+NAME="$VERSION.$PATCHLEVEL.$SUBLEVEL$EXTRAVERSION$CONFIG_LOCALVERSION"
+
+info "Detected kernel version $NAME"
+
+if [ $UID != "0" ]; then
+	die "Must be root to install kernel!"
+fi
+
+# (1) copy modules
+if [ "$1" != "-m" ]; then
+	info "Installing modules..."
+	silent make -j32 modules_install
+else
+	info "Skipping installing modules."
+fi
+
+# (2) copy kernel
+info "Installing kernel..."
+silent cp -v arch/sparc64/boot/image	/boot/vmlinuz-$NAME
+silent cp -v System.map             	/boot/System.map-$NAME
+
+# (3) build ramdisk
+info "Building module dependencies"
+silent depmod -v $NAME
+
+ALREADY_LINKED=`ls /lib/firmware | grep "$NAME" `
+if [ ! -z "$ALREADY_LINKED" ]; then
+	info "Firmware library files already linked."
+else
+	info "Creating link to firmware library files..."
+	silent ln -s /lib/firmware/2.6.22-14-sparc64-smp /lib/firmware/$NAME
+fi
+
+if [ "$1" != "-m" ]; then
+	info "Building initial ramdisk..."
+	silent update-initramfs -c -k $NAME
+else
+	info "Skipping updating initial ramdisk..."
+fi
+
+# (4) make bootloader entry
+ALREADY_PRESENT=`grep "^image=/vmlinuz-${NAME}$" /boot/silo.conf `
+
+if [ ! -z "$ALREADY_PRESENT" ]; then
+	info "Bootloader entry appears to be already present."
+else
+	info "Creating bootloader entry..."
+	cat >> /boot/silo.conf <<__EOE__
+
+image=/vmlinuz-$NAME
+	label=Kernel-$NAME
+	initrd=/initrd.img-$NAME
+	root=/dev/disk/by-uuid/4ebd4362-682e-4856-a467-086a3780179c
+	partition=4
+	append="quiet splash"
+__EOE__
+
+fi
+
+info "Kernel $NAME has been installed."
