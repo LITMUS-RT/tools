@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+from subprocess import Popen, PIPE, call
+import re
+import sys
+
+NM_FORMAT = "([0-9a-f]+) *([0-9a-f]*) *([AaBbCcDdGgIiNnRrSsTtUuVvWw])" + \
+    " ([_a-zA-Z.0-9]+)"
+
+nm_re = re.compile(NM_FORMAT)
+
+def parse_nm_output(str):
+    "returns (start, length, type, name)"
+    m = nm_re.match(str)
+    if m:
+        start  = int(m.group(1), 16)
+        if m.group(2) != '':
+            length = int(m.group(2), 16)
+        else:
+            length = 0
+        return (start, length, m.group(3), m.group(4))
+    else:
+        return None
+
+def symbol_is_text(addr):
+    return addr[2] in "tT"
+
+def nm(file):
+    cmd = "nm -S %s" % file
+    p = Popen(cmd, shell=True, stdout=PIPE)
+    return p.stdout
+
+def nm_filtered(file, symbol):
+    cmd = "nm -S %s | egrep %s " % (file, symbol)
+    p = Popen(cmd, shell=True, stdout=PIPE)
+    return p.stdout
+
+def objdump_symbol(file, addr):
+    objdump_cmd = "objdump -S -d --start-address=0x%x --stop-address=0x%x %s" \
+        % (addr[0], addr[0] + addr[1], file)
+    filter_cmd  = "egrep -v 'Disassembly of|file format|^$'"
+    pipe_cmd    = "%s | %s" % (objdump_cmd, filter_cmd)
+    print "=====[ %s (0x%x - 0x%x, type: %s) ]=====" % \
+        (addr[3], addr[0], addr[0] + addr[1], addr[2])
+    sys.stdout.flush()
+    call(pipe_cmd, shell=True)
+
+
+def get_address_ranges(file, symbol):
+    for line in nm_filtered(file, symbol):
+        addr = parse_nm_output(line)
+        if addr and addr[1] > 0 and symbol_is_text(addr):
+            objdump_symbol(file, addr)
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print "Usage: %s <symbol pattern>" % sys.argv[0]
+    else:
+        get_address_ranges("vmlinux", sys.argv[1])
