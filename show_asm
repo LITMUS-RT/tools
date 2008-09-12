@@ -1,8 +1,53 @@
 #!/usr/bin/env python
+#
+# Copyright (c) 2008, Bjoern B. Brandenburg <bbb [at] cs.unc.edu>
+#
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the copyright holder nor the
+#       names of its contributors may be used to endorse or promote products
+#       derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS  PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+# AND ANY  EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT LIMITED  TO, THE
+# IMPLIED WARRANTIES  OF MERCHANTABILITY AND  FITNESS FOR A  PARTICULAR PURPOSE
+# ARE  DISCLAIMED. IN NO  EVENT SHALL  THE COPYRIGHT  OWNER OR  CONTRIBUTORS BE
+# LIABLE  FOR   ANY  DIRECT,  INDIRECT,  INCIDENTAL,   SPECIAL,  EXEMPLARY,  OR
+# CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT   NOT  LIMITED  TO,  PROCUREMENT  OF
+# SUBSTITUTE  GOODS OR SERVICES;  LOSS OF  USE, DATA,  OR PROFITS;  OR BUSINESS
+# INTERRUPTION)  HOWEVER CAUSED  AND ON  ANY  THEORY OF  LIABILITY, WHETHER  IN
+# CONTRACT,  STRICT  LIABILITY, OR  TORT  (INCLUDING  NEGLIGENCE OR  OTHERWISE)
+# ARISING IN ANY  WAY OUT OF THE USE  OF THIS SOFTWARE, EVEN IF  ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
+"""
+Purpose: This tool displays the assembly code of all symbols matching a given
+         pattern in a given set of files. It is a quick&dirty wrapper around
+         the nm(1) and objdump(1) tools. Its main advantage is that it does not
+         require you to find out the addresses of a given set of symbols
+         manually. Also, it's considerably faster than just disassembling the
+         whole Linux kernel on slow systems.
+
+Example: show_asm printk vmlinux
+         Disassemble printk-related functions in the Linux kernel.
+
+         show_asm 'main|foo|bar' *.o
+         Disassemble all main, foo, and bar
+         functions in all object files in the current directory.
+"""
 
 from subprocess import Popen, PIPE, call
 import re
 import sys
+import os
 
 NM_FORMAT = "([0-9a-f]+) *([0-9a-f]*) *([AaBbCcDdGgIiNnRrSsTtUuVvWw])" + \
     " ([_a-zA-Z.0-9]+)"
@@ -31,7 +76,7 @@ def nm(file):
     return p.stdout
 
 def nm_filtered(file, symbol):
-    cmd = "nm -S %s | egrep %s " % (file, symbol)
+    cmd = "nm -S %s | egrep '%s' " % (file, symbol)
     p = Popen(cmd, shell=True, stdout=PIPE)
     return p.stdout
 
@@ -40,8 +85,8 @@ def objdump_symbol(file, addr):
         % (addr[0], addr[0] + addr[1], file)
     filter_cmd  = "egrep -v 'Disassembly of|file format|^$'"
     pipe_cmd    = "%s | %s" % (objdump_cmd, filter_cmd)
-    print "=====[ %s (0x%x - 0x%x, type: %s) ]=====" % \
-        (addr[3], addr[0], addr[0] + addr[1], addr[2])
+    print "=====[ %s:%s (0x%x - 0x%x, type: %s) ]=====" % \
+        (file, addr[3], addr[0], addr[0] + addr[1], addr[2])
     sys.stdout.flush()
     call(pipe_cmd, shell=True)
 
@@ -53,7 +98,10 @@ def get_address_ranges(file, symbol):
             objdump_symbol(file, addr)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print "Usage: %s <symbol pattern>" % sys.argv[0]
+    if len(sys.argv) < 3:
+        name = os.path.basename(sys.argv[0])
+        print "Usage..: %s <symbol pattern> <object file>+" % name
+        print __doc__
     else:
-        get_address_ranges("vmlinux", sys.argv[1])
+        for file in sys.argv[2:]:
+            get_address_ranges(file, sys.argv[1])
