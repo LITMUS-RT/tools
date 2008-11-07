@@ -103,5 +103,8 @@ if __name__ == "__main__":
         print "Usage..: %s <symbol pattern> <object file>+" % name
         print __doc__
     else:
-        for file in sys.argv[2:]:
-            get_address_ranges(file, sys.argv[1])
+        try:
+            for file in sys.argv[2:]:
+                get_address_ranges(file, sys.argv[1])
+        except KeyboardInterrupt:
+            print "Aborted."
