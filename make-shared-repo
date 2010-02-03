@@ -1,0 +1,87 @@
+#!/bin/bash
+# Shell script to create new repositories on a remote server.
+#
+# (c) 2010, B. Brandenburg.
+
+REPO=`basename "$1"`
+
+### configuration section ###
+
+# where to copy it to
+REMOTE_PATH="/cvs/proj/litmus/repo/${REPO}.git"
+SERVER="cvs.cs.unc.edu"
+
+# command to execute after repository creation
+CHMOD="/cvs/proj/litmus/sw/bin/set_repo_rights --quiet"
+
+### end of configuration ###
+
+
+# implementation from here on dow
+CONFIG="$1/.git/config"
+BARE="/tmp/${REPO}.git"
+TARGET="$SERVER:$REMOTE_PATH"
+
+function die {
+    echo "(EE) $*"
+    exit 1
+}
+
+function info {
+    echo "(II) $*"
+}
+
+function warn {
+    echo "(WW) $*"
+}
+
+if [ -z "$1" ]
+then
+    die "Argument missing. Usage: '$0 /path/to/git/repo'."
+fi
+
+info "Creating shared repository for $REPO on $SERVER at $REMOTE_PATH."
+
+info "Checking whether ${TARGET} exists."
+ssh "$SERVER" test -e "$REMOTE_PATH" && die "Remote path exists already."
+
+if [ -e "$BARE" ]
+then
+    warn "$BARE exists. Moving it out of the way."
+    warn "Faking" rm -rf "$BARE"
+    die "Not yet implemented..."
+fi
+
+info "Cloning repository ${REPO} to ${BARE}."
+git clone --bare "$1" "$BARE" || die "git clone failed."
+
+info "Copying to ${TARGET}."
+scp -rpq "$BARE" "$TARGET" || die "scp failed."
+
+if [ ! -z "$CHMOD" ]
+then
+    info "Setting up permissions."
+    ssh "$SERVER" "$CHMOD" "$REMOTE_PATH" || die "$CHMOD failed"
+fi
+
+info "Cleaning up."
+rm -rf "$BARE" || die "rm failed."
+
+info "Appending origin setup to $CONFIG"
+cat  >> "$CONFIG" <<EOF
+
+# config added by $0
+[remote "origin"]
+	url = ${TARGET}
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+EOF
+
+echo "****************************"
+info  "Your new remote repository is at: $TARGET"
+info "Enjoy!"
+echo
+
+

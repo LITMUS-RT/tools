@@ -1,0 +1,33 @@
+#!/bin/bash
+
+function die()
+{
+	echo "Error: $1"
+	echo "Usage: $0 <REPOSITORY>"
+	exit 1
+}
+
+if [ "$1" == "--quiet" ]
+then
+	QUIET=yes
+	shift
+fi
+
+REPO=$1
+
+if [ -z "$REPO" ]; then
+	die "You need to specify a repository!";
+fi
+
+chown -R $USER:litmus "$REPO"        || die "chown failed"
+chmod -R o-rwx "$REPO"               || die "chmod failed"
+setfacl -R -m g::rwx "$REPO"         || die "setfacl failed"
+setfacl -d -R -m g::rwx "$REPO"      || die "setfacl -d failed"
+
+
+if [ -z "$QUIET" ]
+then
+	echo "Repository $REPO is ready for use:"
+	ls -l "$REPO"
+	getfacl "$REPO"
+fi
