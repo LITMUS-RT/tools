@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import sys
+import re
+
+comment_re = re.compile(r'([^\\]|^)%')
+input_re   = re.compile(r'\\input\{([^}]*)\}')
+
+def strip_comment(line):
+    g = comment_re.search(line)
+    if g:
+        # we matched some non-\ character
+        return line[0:g.start() + 1]
+    else:
+        return line
+
+def chomp(line):
+    if line and line[-1] == '\n':
+        return line[:-1]
+    else:
+        return line
+
+def open_tex_file(fname, mode='r'):
+    try:
+        f = open(fname, mode)
+    except IOError:
+        # try again with .tex appended
+        f = open(fname + '.tex', mode)
+    return f
+
+def process_file(fname, out=sys.stdout):
+    for line in open_tex_file(fname):
+        line = chomp(strip_comment(line))
+        idx = 0
+        for g in input_re.finditer(line):
+            out.write(line[idx:g.start()])
+            fname = g.group(1)
+            # recurse into file
+            out.write("%%!!!!! processing %s !!!!!\n" % fname)
+            process_file(fname, out)
+            idx = g.end()
+        out.write(line[idx:])
+        out.write('\n')
+
+
+def main(args=sys.argv[1:]):
+    for fname in args:
+        process_file(fname)
+
+if __name__ == '__main__':
+    main()
