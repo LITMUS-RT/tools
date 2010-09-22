@@ -45,4 +45,6 @@ else
     GDB_OPT=
 fi
 
+# Newer versions of KVM may refuse to load a proper serial interface if both -nographic and -serial stdio are specified (koruna does this).
+# In such cases, remove "-serial stdio"
 qemu-system-x86_64 ${GDB_OPT} -smp $2 -cpu core2duo -hda ${KVM_IMAGE} -m 2000 -net nic,model=e1000 -net user -k en-us -kernel $1 -append "console=ttyS0 root=/dev/hda1 $3" ro -nographic -serial stdio -redir tcp:${SSH_PORT}::22
