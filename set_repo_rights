@@ -20,7 +20,8 @@ if [ -z "$REPO" ]; then
 fi
 
 chown -R $USER:litmus "$REPO"        || die "chown failed"
-chmod -R o-rwx "$REPO"               || die "chmod failed"
+chmod -R g+s "$REPO"                 || die "chmod -R g+s failed"
+chmod -R o-rwx "$REPO"               || die "chmod -R o-rwx failed"
 setfacl -R -m g::rwx "$REPO"         || die "setfacl failed"
 setfacl -d -R -m g::rwx "$REPO"      || die "setfacl -d failed"
 
