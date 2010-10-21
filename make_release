@@ -4,9 +4,9 @@ RELEASE_DIR=/home/bbb/releases
 
 LIBLITMUS_DIR=/home/bbb/dev/liblitmus2010
 LITMUS_DIR=/home/bbb/dev/litmus2010
-FT_TOOLS_DIR=/home/bbb/ft_tools/
+FT_TOOLS_DIR=/home/bbb/dev/ft_tools/
 
-BASE_TAG="v2.6.32"
+BASE_TAG="v2.6.34"
 
 TAG=$1
 
@@ -65,10 +65,10 @@ mkdir -p $TARGET    || die "Could not make directory $TARGET."
 
 release_litmus      || die "Releasing LITMUS^RT failed."
 release_liblitmus   || die "Releasing liblitmus failed."
-release_ft_tools    || die "Releasing ft_tools  failed." 
+release_ft_tools    || die "Releasing ft_tools  failed."
 
 cd $TARGET
-echo "Generating check sums." 
+echo "Generating check sums."
 sha256sum * > SHA256SUMS
 
 echo "Release generated in $TARGET."
