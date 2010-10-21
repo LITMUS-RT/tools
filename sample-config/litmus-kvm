@@ -1,0 +1,16 @@
+# Simple Litmus KVM tools config file.
+# Copy this to ~/.litmus_kvm
+
+# how to connect to the VM
+SSH_PORT=1234 # CHANGE THIS
+GDB_PORT=4321 # CHANGE THIS
+SSH_HOST=localhost
+
+# for pull
+DATA_DIR="~/liblitmus2010/traces/"
+FILE_GLOB="*"
+DOWNLOADS=~/downloads
+
+# for push
+HOST_LIBLITMUS_DIR=~/dev/liblitmus2010
+KVM_WORKSPACE="~/"
