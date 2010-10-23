@@ -1,34 +1,98 @@
 #!/bin/bash
 
+
+function usage()
+{
+    cat <<EOF
+Usage: set_repo_rights [OPTIONS] <REPOSITORY1> <REPOSITORY2> ...
+
+Options:
+  --quiet       do not give a report after setting permssions
+  --public      give read access rights to others (e.g., the gitweb daemon)
+
+EOF
+}
+
 function die()
 {
 	echo "Error: $1"
-	echo "Usage: $0 <REPOSITORY>"
+	usage
 	exit 1
 }
 
-if [ "$1" == "--quiet" ]
-then
-	QUIET=yes
-	shift
-fi
+QUIET=
+PUBLIC=
+PROJECT_GROUP=litmus
 
-REPO=$1
+while true
+do
+    case $1 in
+	--quiet)
+	    shift
+	    QUIET=yes
+	    ;;
+	--gitweb)
+	    shift
+	    PUBLIC=yes
+	    ;;
+	--group)
+	    shift
+	    PROJECT_GROUP=$1
+	    shift
+	    ;;
+	--help|-h)
+	    usage
+	    exit 0
+	    ;;
+	*) # unknown argument
+	    break
+	    ;;
+    esac
+done
 
-if [ -z "$REPO" ]; then
+
+function set_rights()
+{
+
+    REPO=$1
+
+    if [ -z "$REPO" ]; then
 	die "You need to specify a repository!";
-fi
+    fi
 
-chown -R $USER:litmus "$REPO"        || die "chown failed"
-chmod -R g+s "$REPO"                 || die "chmod -R g+s failed"
-chmod -R o-rwx "$REPO"               || die "chmod -R o-rwx failed"
-setfacl -R -m g::rwx "$REPO"         || die "setfacl failed"
-setfacl -d -R -m g::rwx "$REPO"      || die "setfacl -d failed"
+    # everything should belong the calling user
+    chown -R $USER:$PROJECT_GROUP "$REPO" || die "chown failed"
 
 
-if [ -z "$QUIET" ]
-then
+    # setup group rights
+    find "$REPO" -type d -exec chmod g+s '{}' ';' || die "could not make directories sticky"
+    # owning group
+    setfacl -R -m g::rwx "$REPO" || die "setfacl failed"
+    # owning group, default entry
+    setfacl -d -R -m g::rwx "$REPO" || die "setfacl -d failed"
+
+    if [ -n "$PUBLIC" ]
+    then
+	# give access to others
+	find "$REPO" -type d -exec chmod g+rx '{}' ';' || die "could not make directories acessible"
+	find "$REPO" -type f -exec chmod g+r '{}' ';'  || die "could not make files acessible"
+        # others, default entry
+	setfacl -d -R -m o::rx "$REPO" || die "setfacl -d failed"
+    else
+	# remove access
+	chmod -R o-rwx "$REPO"                || die "chmod -R o-rwx failed"
+    fi
+
+    if [ -z "$QUIET" ]
+    then
 	echo "Repository $REPO is ready for use:"
 	ls -l "$REPO"
 	getfacl "$REPO"
-fi
+    fi
+}
+
+while [ ! -z "$1" ]
+do
+    set_rights "$1"
+    shift
+done
