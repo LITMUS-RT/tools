@@ -1,0 +1,118 @@
+#!/bin/bash
+
+TFTP_DIR=/home/nfsroot/tftp-boot
+BOOT_LINK=uImage
+
+USER_TAG=$USER
+if [ ! -z "$SUDO_USER" ]
+then
+    USER_TAG=$SUDO_USER
+fi
+
+MAKE_ACTIVE=
+
+function die()
+{
+	echo " (EE) $1"
+	exit 1
+}
+
+function info()
+{
+	echo " (II) $1"
+}
+
+function silent()
+{
+	OUTPUT=`$*`
+	if [ "$?" != "0" ]; then
+		echo $OUTPUT
+		die "$* failed!"
+	fi
+}
+
+function usage()
+{
+    cat <<EOF
+Usage: install_kernel.district10 [--activate]
+
+Options:
+  --activate   Point uImage symlink to newly installed kernel.
+
+Note: must be invoked in kernel src directory.
+EOF
+}
+
+while [ ! -z "$1" ]
+do
+    case $1 in
+	--activate)
+	    shift
+	    MAKE_ACTIVE=yes
+	    ;;
+	--help|-h)
+	    usage
+	    exit 0
+	    ;;
+	*) # unknown argument
+	    echo "Unknown argument $1"
+	    usage
+	    exit 1
+	    ;;
+    esac
+done
+
+
+if [ ! -f "./.config" ]; then
+	CURDIR=`pwd`
+	die "No kernel .config exists in $CURDIR!"
+fi
+
+if [ ! -f "./Makefile" ]; then
+	die "No Makefile present!"
+fi
+
+NAME=`cat include/config/kernel.release`
+NAME=${NAME/%\+/} # remove trailing '+' (if any)
+
+if [ -z "$NAME" ]
+then
+    die "Could not determine kernel version!"
+fi
+
+info "Detected kernel version $NAME"
+
+if [ $UID != "0" ]; then
+    die "Must be root to install kernel!"
+fi
+
+if [ ! -d "$TFTP_DIR" ]
+then
+    die "TFTP directory $TFTP_DIR does not exist. Is the NFS root mounted?"
+fi
+
+KERNEL="uimage-${USER_TAG}-${NAME}"
+UIMAGE="${TFTP_DIR}/$KERNEL"
+CONFIG="${UIMAGE}.config"
+SYSMAP="${UIMAGE}.System.map"
+
+# (1) Copy kernel
+info "Copy uImage to $UIMAGE"
+silent cp -v arch/arm/boot/uImage "$UIMAGE"
+
+# (2) .config
+info "Copy .config to $CONFIG"
+silent cp -v .config "$CONFIG"
+
+# (3) System.map
+info "Copy System.map to $SYSMAP"
+silent cp -v System.map "$SYSMAP"
+
+if [ -n "$MAKE_ACTIVE" ]
+then
+    info "Pointing kernel symlink $BOOT_LINK to $KERNEL"
+    cd "$TFTP_DIR"
+    [ -L "$BOOT_LINK" ] || die "expected $BOOT_LINK in $TFTP_DIR to be a symbolic link."
+    silent rm "$BOOT_LINK"
+    silent ln -s "$KERNEL" "$BOOT_LINK"
+fi
