@@ -9,7 +9,10 @@ REPO=`basename "$1"`
 
 # where to copy it to
 REMOTE_PATH="/cvs/proj/litmus/repo/${REPO}.git"
-SERVER="cvs.cs.unc.edu"
+if [ -z "$SERVER" ]
+then
+    SERVER="cvs.cs.unc.edu"
+fi
 
 # command to execute after repository creation
 CHMOD="/cvs/proj/litmus/sw/bin/set_repo_rights --quiet"
