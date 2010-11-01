@@ -20,13 +20,6 @@ function silent()
 	fi
 }
 
-# Function to grab var from src
-function getvar() {
-  old=$(head -5 Makefile | grep "^$1")
-  echo $(echo ${old/"$1 ="/} | sed -e "s/[ ]*\(.*\)[ ]*/\1/g")
-  return 0
-}
-
 if [ ! -f "./.config" ]; then
 	CURDIR=`pwd`
 	die "No kernel .config exists in $CURDIR!"
@@ -36,14 +29,12 @@ if [ ! -f "./Makefile" ]; then
 	die "No Makefile present!"
 fi
 
-VERSION=`getvar VERSION`
-PATCHLEVEL=`getvar PATCHLEVEL`
-SUBLEVEL=`getvar SUBLEVEL`
-EXTRAVERSION=`getvar EXTRAVERSION`
+NAME=`cat include/config/kernel.release`
 
-. ./.config
-
-NAME="$VERSION.$PATCHLEVEL.$SUBLEVEL$EXTRAVERSION$CONFIG_LOCALVERSION"
+if [ -z "$NAME" ]
+then
+    die "Could not determine kernel version!"
+fi
 
 info "Detected kernel version $NAME"
 
