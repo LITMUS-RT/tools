@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TFTP_DIR=/home/nfsroot/tftp-boot
+TFTP_DIR=/home/district10/tftp-boot
 BOOT_LINK=uImage
 
 USER_TAG=$USER
