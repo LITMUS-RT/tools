@@ -1,0 +1,16 @@
+#!/bin/bash
+
+die() {
+    echo "Error: $*"
+    exit 1
+}
+
+# if perf is not given in environment, then check path
+[ -z "$PERF" ] && PERF=`which perf`
+# otherwise, assume default location
+[ -z "$PERF" ] && PERF=~/dev/litmus2010/tools/perf/perf
+
+[ -f "$PERF" ] && [ -x "$PERF" ] || die "Could not find perf tool."
+
+# Keep cycle counter active for a loooong time.
+"$PERF" record -o /dev/null sleep $((60 * 60 * 24 * 365)) > /dev/null &
