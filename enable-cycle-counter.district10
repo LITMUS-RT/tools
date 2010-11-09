@@ -6,11 +6,18 @@ die() {
 }
 
 # if perf is not given in environment, then check path
-[ -z "$PERF" ] && PERF=`which perf`
+[ -z "$PERF" ] && PERF=`which perf 2> /dev/null`
 # otherwise, assume default location
 [ -z "$PERF" ] && PERF=~/dev/litmus2010/tools/perf/perf
 
 [ -f "$PERF" ] && [ -x "$PERF" ] || die "Could not find perf tool."
 
+# works for sparc64 and Intel x86 if all CPUs are online
+NUM_CPUS=`egrep -c '^processor|online'   /proc/cpuinfo`
+
 # Keep cycle counter active for a loooong time.
-"$PERF" record -o /dev/null sleep $((60 * 60 * 24 * 365)) > /dev/null &
+
+for x in `seq 0 $(($NUM_CPUS - 1))`
+do
+    schedtool -a $x  -e "$PERF" record -o /dev/null sleep $((60 * 60 * 24 * 365)) > /dev/null &
+done
