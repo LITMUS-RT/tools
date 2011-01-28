@@ -1,0 +1,4 @@
+#!/bin/sh
+exec tail -n +3 $0
+# Litmus Kernels. Be careful not to change the 'exec tail' line above.
+
