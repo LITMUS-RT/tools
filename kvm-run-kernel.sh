@@ -29,6 +29,8 @@ SSH_PORT=2222  # default
 GDB_PORT=6666  # override in config file
 KVM_IMAGE=~/kvm_debian_images/debian_amd64_lib.qcow2
 
+CPU_TYPE=core2duo
+
 # include config file
 [ -f ~/.litmus_kvm ] && source ~/.litmus_kvm
 
@@ -47,4 +49,4 @@ fi
 
 # Newer versions of KVM may refuse to load a proper serial interface if both -nographic and -serial stdio are specified (koruna does this).
 # In such cases, remove "-serial stdio"
-qemu-system-x86_64 ${GDB_OPT} -smp $2 -cpu core2duo -hda ${KVM_IMAGE} -m 2000 -net nic,model=e1000 -net user -k en-us -kernel $1 -append "console=ttyS0 root=/dev/hda1 $3" ro -nographic -serial stdio -redir tcp:${SSH_PORT}::22
+qemu-system-x86_64 ${GDB_OPT} -smp $2 -cpu ${CPU_TYPE} -hda ${KVM_IMAGE} -m 2000 -net nic,model=e1000 -net user -k en-us -kernel $1 -append "console=ttyS0 root=/dev/hda1 $3" ro -nographic -serial stdio -redir tcp:${SSH_PORT}::22
