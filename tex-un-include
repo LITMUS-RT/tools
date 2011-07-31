@@ -2,9 +2,10 @@
 
 import sys
 import re
+from os import path
 
 comment_re = re.compile(r'([^\\]|^)%')
-input_re   = re.compile(r'\\input\{([^}]*)\}')
+input_re   = re.compile(r'\\(?:input|bibliography)\{([^}]*)\}')
 
 def strip_comment(line):
     g = comment_re.search(line)
@@ -21,12 +22,13 @@ def chomp(line):
         return line
 
 def open_tex_file(fname, mode='r'):
-    try:
-        f = open(fname, mode)
-    except IOError:
-        # try again with .tex appended
-        f = open(fname + '.tex', mode)
-    return f
+    if path.exists(fname + '.bbl'):
+        # try bibliography file
+        fname += '.bbl'    
+    elif path.exists(fname + '.tex'):
+        # try tex file
+        fname += '.tex'
+    return open(fname, mode)
 
 def process_file(fname, out=sys.stdout):
     for line in open_tex_file(fname):
