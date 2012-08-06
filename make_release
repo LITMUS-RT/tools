@@ -1,12 +1,12 @@
 #!/bin/bash
 
-RELEASE_DIR=/home/bbb/releases
+RELEASE_DIR=/home/bbb/ldev/releases
 
-LIBLITMUS_DIR=/home/bbb/dev/liblitmus2010
-LITMUS_DIR=/home/bbb/dev/litmus2010
-FT_TOOLS_DIR=/home/bbb/dev/ft_tools/
+LIBLITMUS_DIR=/home/bbb/ldev/liblitmus
+LITMUS_DIR=/home/bbb/ldev/litmus-rt
+FT_TOOLS_DIR=/home/bbb/ldev/ft_tools/
 
-BASE_TAG="v2.6.36"
+BASE_TAG="v3.0"
 
 TAG=$1
 
