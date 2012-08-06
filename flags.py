@@ -57,21 +57,21 @@ format_vm_flags = partial(format_flags, VM_FLAGS)
 
 
 X86_PTE_FLAGS = [
-    ("PAGE_BIT_PRESENT", 1 << 0),
-    ("PAGE_BIT_RW", 1 << 1),
-    ("PAGE_BIT_USER", 1 << 2),
-    ("PAGE_BIT_PWT", 1 << 3),
-    ("PAGE_BIT_PCD", 1 << 4),
-    ("PAGE_BIT_ACCESSED", 1 << 5),
-    ("PAGE_BIT_DIRTY", 1 << 6),
-    ("PAGE_BIT_PSE", 1 << 7),
-    ("PAGE_BIT_PAT", 1 << 7),
-    ("PAGE_BIT_GLOBAL", 1 << 8),
-    ("PAGE_BIT_UNUSED1", 1 << 9),
-    ("PAGE_BIT_IOMAP", 1 << 10),
-    ("PAGE_BIT_HIDDEN", 1 << 11),
-    ("PAGE_BIT_PAT_LARGE", 1 << 12),
-    ("PAGE_BIT_NX", 1 << 63),
+    ("PAGE_PRESENT", 1 << 0),
+    ("PAGE_RW", 1 << 1),
+    ("PAGE_USER", 1 << 2),
+    ("PAGE_PWT", 1 << 3),
+    ("PAGE_PCD", 1 << 4),
+    ("PAGE_ACCESSED", 1 << 5),
+    ("PAGE_DIRTY", 1 << 6),
+    ("PAGE_PSE", 1 << 7),
+    ("PAGE_PAT", 1 << 7),
+    ("PAGE_GLOBAL", 1 << 8),
+    ("PAGE_UNUSED1", 1 << 9),
+    ("PAGE_IOMAP", 1 << 10),
+    ("PAGE_HIDDEN", 1 << 11),
+    ("PAGE_PAT_LARGE", 1 << 12),
+    ("PAGE_NX", 1 << 63),
 ]
 
 get_pte_flags    = partial(get_flags, X86_PTE_FLAGS)
