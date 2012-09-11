@@ -31,10 +31,7 @@ class PowerManager(object):
         self.password = password
         self.port = port
 
-    def __call_url(self, port_value):
-        port_state = '{}={}'.format(self.port, port_value)
-        full_url = 'http://{}/Set.cmd?CMD=SetPower+{}'.format(self.host,
-                port_state)
+        """Set-up urllib2"""
         basic_handler = urllib2.HTTPBasicAuthHandler()
         basic_handler.add_password(realm='IP9258',
                 uri='http://{}/'.format(self.host),
@@ -42,23 +39,37 @@ class PowerManager(object):
                 passwd=self.password)
         opener = urllib2.build_opener(basic_handler)
         urllib2.install_opener(opener)
+
+    def __call_url(self, full_url):
         try:
             url_res = urllib2.urlopen(full_url)
             txt = url_res.read()
-            if -1 == txt.find(port_state):
-                """Response should be the port_state we wanted, plus HTML."""
-                raise PowerManagerException('Bad response: {}'.format(txt))
+            url_res.close()
+            return txt
         except urllib2.URLError as e:
             raise PowerManagerException('Error opening URL: {}'.format(
                 e.reason))
 
+    def get_state(self):
+        full_url = 'http://{}/Set.cmd?CMD=GetPower'.format(self.host)
+        return self.__call_url(full_url)
+
+    def __call_url_power(self, port_value):
+        port_state = '{}={}'.format(self.port, port_value)
+        full_url = 'http://{}/Set.cmd?CMD=SetPower+{}'.format(self.host,
+                port_state)
+        txt = self.__call_url(full_url)
+        if -1 == txt.find(port_state):
+            """Response should be the port_state we wanted, plus HTML."""
+            raise PowerManagerException('Bad response: {}'.format(txt))
+
     def power_on(self):
         print("Power on.")
-        self.__call_url('1')
+        self.__call_url_power('1')
 
     def power_off(self):
         print("Power off.")
-        self.__call_url('0')
+        self.__call_url_power('0')
 
     def power_cycle(self):
         self.power_off()
@@ -67,7 +78,8 @@ class PowerManager(object):
 
     @classmethod
     def dispatch_action(cls, power_manager, action):
-        ACTION_CALLBACKS = {'on': methodcaller('power_on'),
+        ACTION_CALLBACKS = {'get': methodcaller('get_state'),
+                'on': methodcaller('power_on'),
                 'off': methodcaller('power_off'),
                 'cycle': methodcaller('power_cycle')}
         actions = ACTION_CALLBACKS.keys()
@@ -75,12 +87,14 @@ class PowerManager(object):
             action_method = ACTION_CALLBACKS[action]
         except KeyError:
             raise ValueError('Invalid action: {}'.format(action))
-        action_method(power_manager)
+        ret = action_method(power_manager)
+        if ret is not None:
+            print(ret)
 
 
 def parse_args():
     p = argparse.ArgumentParser(description='Control power.')
-    p.add_argument('action', help='on|off|cycle')
+    p.add_argument('action', help='get|on|off|cycle')
     return p.parse_args(sys.argv[1:])
 
 def find_port():
