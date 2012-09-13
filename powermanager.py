@@ -104,7 +104,7 @@ def find_port():
     dash is a dict key.
     
     """
-    POWER_PORTS = { 'pound': 'P60', 'pandaboard': 'P61' }
+    POWER_PORTS = { 'pound': 'p61', 'pandaboard': 'p62' }
 
     script_name = os.path.basename(sys.argv[0])
     dash_pos = script_name.find('-')
@@ -112,7 +112,7 @@ def find_port():
         raise ValueError('No dash found in script name: {}'.format(script_name))
     port_key = script_name[:dash_pos]
     try:
-        return POWER_PORTS[port_key]
+        return (port_key, POWER_PORTS[port_key])
     except KeyError:
         raise KeyError('Port key not found in dict: {}'.format(port_key))
 
@@ -134,7 +134,8 @@ def main():
 
     args = parse_args()
 
-    port = find_port()
+    machine, port = find_port()
+    print('Operating on port {} machine {}.'.format(port, machine))
     mgr = PowerManager(HOST, USERNAME, password, port)
     try:
         PowerManager.dispatch_action(mgr, args.action)
