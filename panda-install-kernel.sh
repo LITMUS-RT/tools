@@ -13,13 +13,19 @@ UBOOT_PART=/dev/mmcblk0p1
 # Build host for ARM.
 HOST="pound.cs.unc.edu"
 
-if [ $# -ne 3 ] ; then
-	error "Usage: `basename $0` <VERSION> <REMOTE KDIR> <BOOT-SCRIPT>"
+if [ $# -ne 2 ] ; then
+	error "Usage: `basename $0` <REMOTE KDIR> <BOOT-SCRIPT>"
 fi
 
-VERSION=$1
-SRC_ROOT=$2
-SCRIPT_NAME=$3
+SRC_ROOT=$1
+SCRIPT_NAME=$2
+
+set +e
+VERSION=$(ssh $HOST cat $SRC_ROOT/include/config/kernel.release)
+set -e
+if [ "x" = "x$VERSION" ] ; then
+	error "Could not determine version"
+fi
 
 if [ ! -f "$SCRIPT_NAME" ] ; then
 	error "Boot script not a file: $SCRIPT_NAME"
