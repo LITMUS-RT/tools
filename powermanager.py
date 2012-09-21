@@ -104,7 +104,7 @@ def find_port():
     dash is a dict key.
     
     """
-    POWER_PORTS = { 'pound': 'p61', 'pandaboard': 'p62' }
+    POWER_PORTS = { 'pound': 'p61', 'pandaboard': 'p62', 'odroidx': 'p63' }
 
     script_name = os.path.basename(sys.argv[0])
     dash_pos = script_name.find('-')
