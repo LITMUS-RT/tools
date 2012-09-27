@@ -3,8 +3,8 @@
 . $(dirname $0)/arm-installer-common.sh
 
 # This is machine specific, AFAIK.
-LOAD_ADDR=0x4000800
-ENTRY_POINT=0x4000800
+LOAD_ADDR=0x40008000
+ENTRY_POINT=0x40008000
 
 # Where the U-Boot partition is mounted.
 UBOOT_PATH="/media/boot"
