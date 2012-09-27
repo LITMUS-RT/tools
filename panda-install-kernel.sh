@@ -7,83 +7,41 @@ error() {
 	exit 1
 }
 
+TMP_MOUNT=$(mktemp -d)
+
 # The FAT u-boot bootloader partition.
 UBOOT_PART=/dev/mmcblk0p1
 
-# Build host for ARM.
-HOST="pound.cs.unc.edu"
+# This is machine specific, AFAIK.
+LOAD_ADDR=0x80008000
+ENTRY_POINT=0x80008000
 
-if [ $# -ne 2 ] ; then
-	error "Usage: `basename $0` <REMOTE KDIR> <BOOT-SCRIPT>"
-fi
+getversion
 
-SRC_ROOT=$1
-SCRIPT_NAME=$2
+fetchfiles
 
-set +e
-VERSION=$(ssh $HOST cat $SRC_ROOT/include/config/kernel.release)
-set -e
-if [ "x" = "x$VERSION" ] ; then
-	error "Could not determine version"
-fi
+mkuboot
 
-if [ ! -f "$SCRIPT_NAME" ] ; then
-	error "Boot script not a file: $SCRIPT_NAME"
-fi
+mkscript
 
-TMP_DIR=$(mktemp -d)
-TMP_MOUNT=$(mktemp -d)
+moveconfig
 
-ZIMAGE_NAME="zImage-litmus"
-UIMAGE_NAME="uImage-litmus"
-CONFIG_NAME="config-$VERSION"
-INITRD_NAME="uInitrd-litmus"
-SCR_NAME="boot-litmus.scr"
+doinitramfs
 
-echo "Fetching files from $HOST ..." >&2
-rsync -P cjk@$HOST:$SRC_ROOT/arch/arm/boot/zImage $TMP_DIR/$ZIMAGE_NAME
-rsync -P cjk@$HOST:$SRC_ROOT/.config $TMP_DIR/$CONFIG_NAME
-echo "done." >&2
-
-echo "Generating kernel u-boot image..." >&2
-mkimage -A arm -O linux -T kernel -C none -a 0x80008000 \
-	-e 0x80008000 -d $TMP_DIR/$ZIMAGE_NAME $TMP_DIR/$UIMAGE_NAME >&2
-echo "done." >&2
-
-echo "Generating u-boot configuration ... " >&2
-mkimage -A arm -T script -C none -d "$SCRIPT_NAME" $TMP_DIR/$SCR_NAME >&2
-echo "done." >&2
-
-echo "Moving vmlinuz and config fils to /boot ..." >&2
-sudo cp $TMP_DIR/$ZIMAGE_NAME /boot/vmlinuz-$VERSION
-sudo cp $TMP_DIR/$CONFIG_NAME /boot/
-echo "done." >&2
-
-echo "Creating initramfs (ignore module errors) ... " >&2
-sudo update-initramfs -k $VERSION -c
-echo "done." >&2
-
-echo "Making u-boot initrd image ... " >&2
-mkimage -A arm -O linux -T ramdisk -C none -a 0x0 -e 0x0 \
-	-d /boot/initrd.img-$VERSION $TMP_DIR/$INITRD_NAME >&2
-echo "done." >&2
+mkuinitrd
 
 echo "Mounting u-boot partition ..." >&2
 sudo mount $UBOOT_PART $TMP_MOUNT
 echo "done." >&2
 
-echo "Copying files to u-boot partition ..." >&2
-sudo cp $TMP_DIR/$UIMAGE_NAME $TMP_MOUNT/
-sudo cp $TMP_DIR/$SCR_NAME $TMP_MOUNT/
-sudo cp $TMP_DIR/$INITRD_NAME $TMP_MOUNT/
-echo "done." >&2
+UBOOT_PATH=$TMP_MOUNT
+copy_to_uboot
 
 echo "Unmounting u-boot partition ..." >&2
 sudo umount $TMP_MOUNT
 echo "done." >&2
 
-echo "Removing temporary files ..." >&2
-rm -rf $TMP_DIR $TMP_MOUNT
-echo "done." >&2
+rm_tmp_files
+rm -rf $TMP_MOUNT
 
 echo "All done!" >&2
