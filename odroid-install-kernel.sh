@@ -1,5 +1,8 @@
 #!/bin/sh
 
+. $(dirname $0)/arm-installer-common.sh
+
+# This is machine specific, AFAIK.
 LOAD_ADDR=0x4000800
 ENTRY_POINT=0x4000800
 
@@ -12,7 +15,8 @@ if [ 0 -ne $? ] ; then
 fi
 set -e
 
-getversion
+KVERSION=$(getversion)
+CONFIG_FILE="config-$KVERSION"
 
 fetchfiles
 
@@ -24,12 +28,12 @@ moveconfig
 
 doinitramfs
 
-mkunitrd
+mkuinitrd
 
 copy_to_uboot
 
 echo "Making LITMUS the default ..." >&2
-mv $TMP_MOUNT/$SCRIPT_NAME $TMP_MOUNT/boot.scr
+mv $UBOOT_PATH/$SCRIPT_FILE $UBOOT_PATH/boot.scr
 echo "done." >&2
 
 rm_tmp_files

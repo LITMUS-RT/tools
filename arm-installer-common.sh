@@ -5,6 +5,8 @@ set -u
 
 # Build host for ARM.
 HOST="pound.cs.unc.edu"
+# User doing the builds.
+USER="cjk"
 
 # Not installed on the U-Boot partition.
 ZIMAGE_FILE="zImage"
@@ -27,6 +29,9 @@ TMP_DIR=$(mktemp -d)
 # initramfs state directory (Debian/Ubuntu)
 INITRAMFS_STATEDIR="/var/lib/initramfs-tools"
 
+# Where the modules live (not in /lib/modules). This is relative to my homedir.
+MODULES_PATH="modules"
+
 error() {
 	echo "$@" >&2
 	exit 1
@@ -37,24 +42,21 @@ if [ $# -ne 2 ] ; then
 fi
 
 KERN_DIR=$1
-SCRIPT_NAME=$2
+BOOT_TXT=$2
 
-if [ ! -f "$SCRIPT_NAME" ] ; then
-	error "Boot script not a file: $SCRIPT_NAME"
+if [ ! -f "$BOOT_TXT" ] ; then
+	error "Boot script TXT not a file: $BOOT_TXT"
 fi
 
 getversion() {
-	# This function also sets the CONFIG_FILE global.
-
 	local version
 	set +e
-	version=$(ssh $HOST cat $KERN_DIR/include/config/kernel.release)
+	version=$(ssh $USER@$HOST cat $KERN_DIR/include/config/kernel.release)
 	set -e
 	if [ "x" = "x$version" ] ; then
 		error "Could not determine version"
 	fi
-	CONFIG_FILE="config-$version"
-	return $version
+	echo "$version"
 }
 
 fetchfiles() {
@@ -62,6 +64,26 @@ fetchfiles() {
 	rsync -P $USER@$HOST:$KERN_DIR/arch/arm/boot/zImage $TMP_DIR/$ZIMAGE_FILE
 	rsync -P $USER@$HOST:$KERN_DIR/.config $TMP_DIR/$CONFIG_FILE
 	echo "done." >&2
+
+	local remotemodules
+	local havemodules
+	remotemodules="$MODULES_PATH/$KVERSION/lib/modules/$KVERSION"
+	set +e
+	ssh $USER@$HOST "test -e $remotemodules"
+	havemodules=$?
+	set -e
+	if [ $havemodules -ne 0 ] ; then
+		echo "No modules found." >&2
+		if [ -d "/lib/modules/$KVERSION" ] ; then
+			echo "Removing old modules ..." >&2
+			rm -rf "/lib/modules/$KVERSION"
+			echo "done." >&2
+		fi
+	else
+		echo "Copying modules ..." >&2
+		sudo rsync -aP --delete $USER@$HOST:$remotemodules /lib/modules/
+		echo "done." >&2
+	fi
 }
 
 mkuboot() {
@@ -74,7 +96,7 @@ mkuboot() {
 
 mkscript() {
 	echo "Generating u-boot configuration ... " >&2
-	mkimage -A arm -T script -C none -d "$SCRIPT_FILE" $TMP_DIR/$SCRIPT_FILE >&2
+	mkimage -A arm -T script -C none -d "$BOOT_TXT" $TMP_DIR/$SCRIPT_FILE >&2
 	echo "done." >&2
 }
 
@@ -105,7 +127,7 @@ mkuinitrd() {
 
 	echo "Making u-boot initrd image ... " >&2
 	mkimage -A arm -O linux -T ramdisk -C none \
-		-d $initrdimage $TMP_DIR/$INITRD_NAME >&2
+		-d $initrdimage $TMP_DIR/$INITRD_FILE >&2
 	echo "done." >&2
 }
 

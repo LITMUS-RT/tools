@@ -1,22 +1,18 @@
 #!/bin/sh
 
-set -e
+. $(dirname $0)/arm-installer-common.sh
 
-error() {
-	echo "$@" >&2
-	exit 1
-}
+# This is machine specific, AFAIK.
+LOAD_ADDR=0x80008000
+ENTRY_POINT=0x80008000
 
 TMP_MOUNT=$(mktemp -d)
 
 # The FAT u-boot bootloader partition.
 UBOOT_PART=/dev/mmcblk0p1
 
-# This is machine specific, AFAIK.
-LOAD_ADDR=0x80008000
-ENTRY_POINT=0x80008000
-
-getversion
+KVERSION=$(getversion)
+CONFIG_FILE="config-$KVERSION"
 
 fetchfiles
 
