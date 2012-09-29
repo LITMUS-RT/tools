@@ -7,7 +7,7 @@ LOAD_ADDR=0x40008000
 ENTRY_POINT=0x40008000
 
 # Where the U-Boot partition is mounted.
-UBOOT_PATH="/media/boot"
+UBOOT_PATH="/mnt/boot"
 set +e
 grep "$UBOOT_PATH" /etc/mtab > /dev/null
 if [ 0 -ne $? ] ; then
@@ -33,7 +33,7 @@ mkuinitrd
 copy_to_uboot
 
 echo "Making LITMUS the default ..." >&2
-mv $UBOOT_PATH/$SCRIPT_FILE $UBOOT_PATH/boot.scr
+sudo mv $UBOOT_PATH/$SCRIPT_FILE $UBOOT_PATH/boot.scr
 echo "done." >&2
 
 rm_tmp_files
