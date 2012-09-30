@@ -76,7 +76,7 @@ fetchfiles() {
 		echo "No modules found." >&2
 		if [ -d "/lib/modules/$KVERSION" ] ; then
 			echo "Removing old modules ..." >&2
-			rm -rf "/lib/modules/$KVERSION"
+			sudo rm -rf "/lib/modules/$KVERSION"
 			echo "done." >&2
 		fi
 	else
