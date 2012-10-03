@@ -88,13 +88,15 @@ set +e
 _unused=$(grep "$entryname" "$GRUBCFG")
 retval=$?
 set -e
-if [ $retval -ne 0 ] ; then
-	echo "Installing grub menuentry ..." >&2
-	installgrubmenuentry "$entryname"
-	echo "done."
-else
-	echo "Grub menuentry seems to exist already." >&2
-fi
+
+# Ubuntu detects kernels named vmlinuz-* already.
+#if [ $retval -ne 0 ] ; then
+#	echo "Installing grub menuentry ..." >&2
+#	installgrubmenuentry "$entryname"
+#	echo "done."
+#else
+#	echo "Grub menuentry seems to exist already." >&2
+#fi
 
 sudo update-grub
 
