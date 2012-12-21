@@ -1,0 +1,4 @@
+        fatload mmc 0:1 0x80000000 uImage-litmus
+        fatload mmc 0:1 0x81600000 uInitrd-litmus
+        setenv bootargs ro elevator=noop vram=40M mem=456M@0x80000000 mem=512M@0xA0000000 root=UUID=1c7e7b13-56b8-430a-aed1-50ee431e84c2 fixrtc console=ttyO2,115200n8 netconsole=4444@152.2.130.212/eth0,2345@152.2.142.84/00:21:9b:1b:85:7e
+        bootm 0x80000000 0x81600000
